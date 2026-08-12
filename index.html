@@ -685,7 +685,7 @@
                 }
             };
 
-            const apiKey = "AIzaSyCELOBMQR_Lqc_33y5smeHLYIvj-3oRgIs"; // API key managed by Canvas environment
+            const apiKey = "%VITE_GEMINI_API_KEY%"; // Carregado do .env pelo Vite
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
             try {
