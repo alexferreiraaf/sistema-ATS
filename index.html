@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4F46E5">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="favicon.jpg">
+    <link rel="icon" href="favicon.jpg" type="image/jpeg">
+    <title>ATS Optimizer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        dark: '#1F2937',
+                        light: '#F3F4F6'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Adicionando bibliotecas para leitura de arquivos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+
+    <style>
+        body.dark {
+            background-color: #111827;
+            color: #F9FAFB;
+        }
+        body {
+            background-color: #F9FAFB;
+            transition: background-color 0.3s;
+            color: #374151;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+        }
+        body.dark .glass-panel {
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #4F46E5, #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+        
+        .circle-bg {
+            fill: none;
+            stroke: #eee;
+            stroke-width: 3.8;
+        }
+        
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            animation: progress 1s ease-out forwards;
+        }
+        
+        @keyframes progress {
+            0% {
+                stroke-dasharray: 0 100;
+            }
+        }
+        
+        .percentage {
+            fill: currentColor;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 0.5em;
+            text-anchor: middle;
+        }
+
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+
+        .hidden { display: none !important; }
+        
+        /* Estilos para o dropzone de arquivo */
+        .file-drop-area {
+            border: 2px dashed #D1D5DB;
+            transition: all 0.3s ease;
+        }
+        .file-drop-area.dragover {
+            border-color: #4F46E5;
+            background-color: #EEF2FF;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 sm:p-4 md:p-8">
+
+    
+        <div class="absolute top-4 right-4 md:top-8 md:right-8">
+            <button id="themeToggleBtn" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+
+    <header class="max-w-6xl mx-auto mb-10 text-center relative">
+        <div class="inline-flex items-center justify-center p-3 bg-indigo-100 dark:bg-indigo-900 rounded-full mb-4">
+            <i class="fas fa-robot text-primary text-2xl"></i>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 tracking-tight">ATS <span class="gradient-text">Optimizer Pro</span></h1>
+        <p class="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-lg">
+            Cole seu currículo e a descrição da vaga. Nossa IA atuará como um sistema ATS para calcular sua compatibilidade, sugerir melhorias e gerar uma versão otimizada do seu currículo.
+        </p>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Coluna Esquerda: Formulários de Entrada -->
+        <div class="space-y-6">
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        <i class="fas fa-file-alt text-primary"></i> 1. Seu Currículo
+                    </h2>
+                    <div class="flex gap-2">
+                        <button id="tabTextBtn" class="px-3 py-1 text-sm font-medium rounded-md bg-primary text-white transition-colors">Texto</button>
+                        <button id="tabFileBtn" class="px-3 py-1 text-sm font-medium rounded-md bg-gray-200 text-gray-700 dark:text-gray-300 hover:bg-gray-300 transition-colors">Arquivo</button>
+                    </div>
+                </div>
+                
+                <!-- Modo Texto -->
+                <div id="textMode">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Cole o texto completo do seu currículo atual.</p>
+                    <textarea id="resumeInput" class="w-full h-64 p-4 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all" placeholder="Ex: João da Silva&#10;Desenvolvedor Front-end&#10;&#10;Experiência:&#10;- Empresa X (2020-2023): Desenvolvimento de telas..."></textarea>
+                </div>
+
+                <!-- Modo Arquivo -->
+                <div id="fileMode" class="hidden">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Faça upload do seu currículo em PDF ou DOCX.</p>
+                    <div id="dropZone" class="file-drop-area w-full h-64 rounded-xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden bg-gray-50 dark:bg-gray-900">
+                        <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.doc,.docx" />
+                        <div id="dropZoneContent" class="text-center pointer-events-none p-4">
+                            <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-cloud-upload-alt text-primary text-2xl"></i>
+                            </div>
+                            <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Clique ou arraste seu arquivo aqui</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">Suporta PDF e DOCX (Max 5MB)</p>
+                        </div>
+                        
+                        <!-- Estado de arquivo carregado -->
+                        <div id="fileLoadedState" class="hidden flex-col items-center justify-center w-full h-full bg-white dark:bg-gray-800 relative z-10 p-4">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i id="fileIcon" class="fas fa-file-pdf text-green-600 text-3xl"></i>
+                            </div>
+                            <p id="fileNameDisplay" class="text-gray-800 dark:text-gray-200 font-medium mb-1 truncate max-w-[200px]"></p>
+                            <p class="text-green-600 text-sm font-medium mb-4 flex items-center gap-1"><i class="fas fa-check-circle"></i> Texto extraído com sucesso</p>
+                            <div class="flex gap-3">
+                                <button id="viewExtractedTextBtn" class="text-sm bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900 text-primary px-3 py-1.5 rounded-lg transition-colors font-medium">
+                                    Ver Texto
+                                </button>
+                                <button id="removeFileBtn" class="text-sm bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors font-medium z-20 relative">
+                                    Remover
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        <i class="fas fa-briefcase text-primary"></i> 2. Descrição da Vaga
+                    </h2>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Cole a descrição da vaga que você deseja se candidatar.</p>
+                <textarea id="jobInput" class="w-full h-48 p-4 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all" placeholder="Ex: Procuramos Desenvolvedor Front-end Pleno.&#10;Requisitos: React, Tailwind, Git..."></textarea>
+            </div>
+
+            <button id="analyzeBtn" class="w-full bg-primary hover:bg-indigo-700 text-white font-semibold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3 text-lg">
+                <i class="fas fa-magic"></i> Analisar e Otimizar
+            </button>
+            
+            <div id="errorMessage" class="hidden bg-red-100 text-red-700 p-4 rounded-xl text-sm font-medium flex items-center gap-2">
+                <i class="fas fa-exclamation-circle"></i> <span id="errorText">Por favor, preencha ambos os campos.</span>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Resultados ou Loading -->
+        <div class="relative min-h-[400px] lg:min-h-[600px]">
+            
+            <!-- Estado Inicial -->
+            <div id="initialState" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 glass-panel rounded-2xl h-full border-dashed border-2 border-gray-300 dark:border-gray-600">
+                <div class="w-24 h-24 bg-gray-50 dark:bg-gray-900 rounded-full flex items-center justify-center mb-6">
+                    <i class="fas fa-chart-pie text-gray-300 text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-medium text-gray-600 mb-2">Aguardando Informações</h3>
+                <p class="text-gray-400 max-w-sm">Preencha os campos ao lado e clique em analisar para ver o nível de compatibilidade e o currículo otimizado.</p>
+            </div>
+
+            <!-- Estado de Carregamento -->
+            <div id="loadingState" class="hidden absolute inset-0 flex flex-col items-center justify-center p-8 glass-panel rounded-2xl h-full">
+                <div class="relative w-24 h-24 mb-8">
+                    <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+                    <i class="fas fa-robot absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary text-2xl animate-pulse"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Processando Análise</h3>
+                <p class="text-gray-500 dark:text-gray-400 text-center animate-pulse-slow">
+                    A IA está cruzando as palavras-chave do seu currículo com os requisitos da vaga...<br>Isso pode levar de 5 a 15 segundos.
+                </p>
+            </div>
+
+            <!-- Estado de Resultados -->
+            <div id="resultsState" class="hidden flex-col h-full space-y-6">
+                
+                <!-- Score Card -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-6">
+                    <div class="w-32 h-32 flex-shrink-0 relative">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path class="circle" id="scoreCircle"
+                                stroke="#10B981"
+                                stroke-dasharray="0, 100"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <text x="18" y="20.35" class="percentage" id="scoreText">0%</text>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Compatibilidade (ATS Score)</h3>
+                        <p class="text-gray-600 text-sm" id="scoreMessage">
+                            Seu currículo tem um bom alinhamento, mas falta destacar algumas palavras-chave críticas.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Improvements Card -->
+                <div class="glass-panel p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                        <i class="fas fa-bullseye text-orange-500"></i> Onde melhorar
+                    </h3>
+                    <ul id="improvementsList" class="space-y-3">
+                        <!-- Itens inseridos via JS -->
+                    </ul>
+                </div>
+
+                <!-- Optimized Resume Card -->
+                <div class="glass-panel p-6 rounded-2xl flex-grow flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            <i class="fas fa-check-circle text-secondary"></i> Currículo Otimizado
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="downloadPdfBtn" class="text-sm bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 font-medium">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button id="downloadBtn" class="text-sm bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 font-medium">
+                                <i class="fas fa-file-word"></i> Word
+                            </button>
+                            <button id="copyBtn" class="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 font-medium">
+                                <i class="far fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="copyToast" class="hidden text-xs text-green-600 text-right mb-2 font-medium">Copiado para a área de transferência!</div>
+                    <div id="optimizedResumeText" class="w-full flex-grow p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-y-auto whitespace-pre-wrap font-mono text-sm h-64 md:h-auto max-h-96">
+                        <!-- Texto inserido via JS -->
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Referências do DOM
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resumeInput = document.getElementById('resumeInput');
+        const jobInput = document.getElementById('jobInput');
+        
+        // Elementos de Arquivo
+        const tabTextBtn = document.getElementById('tabTextBtn');
+        const tabFileBtn = document.getElementById('tabFileBtn');
+        const textMode = document.getElementById('textMode');
+        const fileMode = document.getElementById('fileMode');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const dropZoneContent = document.getElementById('dropZoneContent');
+        const fileLoadedState = document.getElementById('fileLoadedState');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const fileIcon = document.getElementById('fileIcon');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const viewExtractedTextBtn = document.getElementById('viewExtractedTextBtn');
+        
+        let extractedFileText = '';
+        let currentInputMode = 'text'; // 'text' ou 'file'
+
+        const initialState = document.getElementById('initialState');
+        const loadingState = document.getElementById('loadingState');
+        const resultsState = document.getElementById('resultsState');
+        
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        
+        const scoreCircle = document.getElementById('scoreCircle');
+        const scoreText = document.getElementById('scoreText');
+        const scoreMessage = document.getElementById('scoreMessage');
+        const improvementsList = document.getElementById('improvementsList');
+        const optimizedResumeText = document.getElementById('optimizedResumeText');
+        
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyToast = document.getElementById('copyToast');
+
+        // Função para mostrar mensagem de erro
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Função para alternar as telas
+        function setViewState(view) {
+            initialState.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            resultsState.classList.add('hidden');
+            resultsState.classList.remove('flex'); // Remove flex class when hidden
+
+            if (view === 'initial') {
+                initialState.classList.remove('hidden');
+                // Se estiver no modo arquivo e tiver texto extraído, reseta a interface mas mantém o arquivo carregado visualmente
+                if(currentInputMode === 'file' && extractedFileText) {
+                   // mantem o status visual do arquivo 
+                }
+            } else if (view === 'loading') {
+                loadingState.classList.remove('hidden');
+            } else if (view === 'results') {
+                resultsState.classList.remove('hidden');
+                resultsState.classList.add('flex'); // Restore flex class
+            }
+        }
+
+        // Determina a cor do score baseado na nota
+        function getScoreColor(score) {
+            if (score >= 80) return '#10B981'; // Green
+            if (score >= 60) return '#F59E0B'; // Orange
+            return '#EF4444'; // Red
+        }
+
+        // Determina a mensagem baseada no score
+        function getScoreMessage(score) {
+            if (score >= 80) return "Excelente! Seu currículo está muito bem alinhado com as palavras-chave e requisitos exigidos pelo ATS para esta vaga.";
+            if (score >= 60) return "Bom alinhamento, mas seu currículo pode ser descartado por robôs mais rígidos. É crucial implementar as melhorias abaixo.";
+            return "Alerta! Seu currículo tem poucas chances de passar na triagem do ATS para esta vaga. Ele precisa ser profundamente reestruturado.";
+        }
+
+        // Lógica das Abas
+        function switchTab(mode) {
+            currentInputMode = mode;
+            if (mode === 'text') {
+                tabTextBtn.classList.replace('bg-gray-200', 'bg-primary');
+                tabTextBtn.classList.replace('text-gray-700', 'text-white');
+                tabTextBtn.classList.remove('hover:bg-gray-300');
+                
+                tabFileBtn.classList.replace('bg-primary', 'bg-gray-200');
+                tabFileBtn.classList.replace('text-white', 'text-gray-700');
+                tabFileBtn.classList.add('hover:bg-gray-300');
+                
+                textMode.classList.remove('hidden');
+                fileMode.classList.add('hidden');
+            } else {
+                tabFileBtn.classList.replace('bg-gray-200', 'bg-primary');
+                tabFileBtn.classList.replace('text-gray-700', 'text-white');
+                tabFileBtn.classList.remove('hover:bg-gray-300');
+                
+                tabTextBtn.classList.replace('bg-primary', 'bg-gray-200');
+                tabTextBtn.classList.replace('text-white', 'text-gray-700');
+                tabTextBtn.classList.add('hover:bg-gray-300');
+                
+                fileMode.classList.remove('hidden');
+                textMode.classList.add('hidden');
+            }
+        }
+
+        tabTextBtn.addEventListener('click', () => switchTab('text'));
+        tabFileBtn.addEventListener('click', () => switchTab('file'));
+
+        // Lógica de Drag & Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                fileInput.files = files; // Atualiza o input nativo
+                handleFileSelect(files[0]);
+            }
+        }
+
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                handleFileSelect(this.files[0]);
+            }
+        });
+
+        async function handleFileSelect(file) {
+            if (!file) return;
+
+            const fileSize = file.size / 1024 / 1024; // em MB
+            if (fileSize > 5) {
+                showError("O arquivo deve ter no máximo 5MB.");
+                fileInput.value = ''; // reseta
+                return;
+            }
+
+            const fileName = file.name;
+            const fileExt = fileName.split('.').pop().toLowerCase();
+            
+            fileNameDisplay.textContent = fileName;
+            
+            if (fileExt === 'pdf') {
+                fileIcon.className = "fas fa-file-pdf text-red-500 text-3xl";
+            } else if (fileExt === 'doc' || fileExt === 'docx') {
+                fileIcon.className = "fas fa-file-word text-blue-600 text-3xl";
+            } else {
+                showError("Formato não suportado. Use PDF ou DOCX.");
+                fileInput.value = '';
+                return;
+            }
+
+            // UI feedback - loading extração
+            dropZoneContent.innerHTML = `<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"></div><p class="text-gray-600 font-medium">Extraindo texto...</p>`;
+
+            try {
+                if (fileExt === 'pdf') {
+                    extractedFileText = await extractTextFromPDF(file);
+                } else if (fileExt === 'doc' || fileExt === 'docx') {
+                    extractedFileText = await extractTextFromDocx(file);
+                }
+                
+                if (!extractedFileText || extractedFileText.trim().length < 20) {
+                    throw new Error("EMPTY_TEXT");
+                }
+                
+                // Sucesso
+                dropZoneContent.classList.add('hidden');
+                fileLoadedState.classList.remove('hidden');
+                fileLoadedState.classList.add('flex');
+                
+            } catch (err) {
+                console.error("Erro na extração:", err);
+                if (err.message === "EMPTY_TEXT") {
+                    showError("O arquivo enviado não contém texto legível (pode ser uma imagem ou PDF escaneado). Os sistemas ATS não conseguem ler imagens. Use o modo Texto ou envie um arquivo Word/PDF nativo.");
+                } else {
+                    showError("Não foi possível ler o arquivo. Ele pode estar corrompido ou protegido por senha.");
+                }
+                resetFileInputUI();
+            }
+        }
+
+        function resetFileInputUI() {
+            fileInput.value = '';
+            extractedFileText = '';
+            dropZoneContent.classList.remove('hidden');
+            fileLoadedState.classList.add('hidden');
+            fileLoadedState.classList.remove('flex');
+            dropZoneContent.innerHTML = `
+                <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-cloud-upload-alt text-primary text-2xl"></i>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">Clique ou arraste seu arquivo aqui</p>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Suporta PDF e DOCX (Max 5MB)</p>
+            `;
+        }
+
+        removeFileBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita reabrir o input de arquivo
+            resetFileInputUI();
+        });
+
+        viewExtractedTextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resumeInput.value = extractedFileText;
+            switchTab('text');
+        });
+
+        // Extração PDF
+        async function extractTextFromPDF(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const typedarray = new Uint8Array(e.target.result);
+                        const pdf = await pdfjsLib.getDocument({data: typedarray}).promise;
+                        let text = '';
+                        
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            const strings = content.items.map(item => item.str);
+                            text += strings.join(' ') + '\n';
+                        }
+                        resolve(text);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Extração Docx (usando mammoth)
+        async function extractTextFromDocx(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                        resolve(result.value);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+
+        // Função principal que aciona a API do Gemini
+        async function analyzeResume() {
+            // Define o texto baseando-se no modo atual
+            let cvText = '';
+            if (currentInputMode === 'text') {
+                cvText = resumeInput.value.trim();
+            } else {
+                cvText = extractedFileText.trim();
+            }
+            
+            const jobText = jobInput.value.trim();
+
+            if (!cvText) {
+                showError(currentInputMode === 'text' ? "Por favor, preencha o seu currículo no campo de texto." : "Por favor, faça o upload de um currículo.");
+                return;
+            }
+            
+            if (!jobText) {
+                showError("Por favor, preencha a descrição da vaga.");
+                return;
+            }
+
+            setViewState('loading');
+            analyzeBtn.disabled = true;
+            analyzeBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            // Prompt estruturado
+            const systemPrompt = `Você é um Analista de RH Senior e Especialista em Sistemas ATS.
+            Seu objetivo é analisar um currículo em relação a uma descrição de vaga, calcular o 'Match Score' (0-100) e reescrever o currículo de forma otimizada para o ATS.
+            
+            REGRAS OBRIGATÓRIAS DE FORMATAÇÃO:
+            Você DEVE retornar o currículo reescrito EXATAMENTE nesta estrutura de Markdown, sem adicionar seções extras no cabeçalho:
+
+            # [NOME COMPLETO DO CANDIDATO]
+            **OBJETIVO: [Cargo ou Objetivo]**
+            [Endereço/Cidade] | [Disponibilidade de Horário]
+            [Telefone] | [Email]
+
+            ## RESUMO PROFISSIONAL
+            [1 ou 2 parágrafos resumindo as qualificações do candidato com foco na vaga]
+
+            ## COMPETÊNCIAS TÉCNICAS
+            - **[Categoria 1]:** [Habilidades]
+            - **[Categoria 2]:** [Habilidades]
+
+            ## EXPERIÊNCIA PROFISSIONAL
+            **[Cargo] / [Empresa]** | [Período]
+            - [Atividade realizada focada em resultados e palavras-chave]
+            - [Atividade realizada]
+
+            ## FORMAÇÃO ACADÊMICA
+            **[Curso]** - [Instituição] ([Status/Ano])
+
+            ## CERTIFICAÇÕES E TREINAMENTOS
+            - [Nome da Certificação] ([Ano])
+
+            ## IDIOMAS
+            - **[Idioma]:** [Nível]
+
+            AVISOS IMPORTANTES:
+            1. NÃO invente experiências, links, ou placeholders (como "[Inserir Link]") que não existam.
+            2. A primeira seção após os contatos DEVE SER obrigatoriamente "## RESUMO PROFISSIONAL".`;
+            
+            const userPrompt = `Descrição da Vaga:\n${jobText}\n\nCurrículo do Candidato:\n${cvText}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            score: { 
+                                type: "INTEGER", 
+                                description: "Porcentagem de compatibilidade de 0 a 100" 
+                            },
+                            improvements: {
+                                type: "ARRAY",
+                                items: { type: "STRING" },
+                                description: "Lista de 3 a 5 pontos objetivos onde o currículo deve melhorar em relação à vaga."
+                            },
+                            optimizedResume: { 
+                                type: "STRING",
+                                description: "O texto completo do currículo reescrito. Formate OBRIGATORIAMENTE em Markdown. Use '# ' para o Nome no início, e '## ' para Títulos de Seção. Não use outras formatações H1. Insira informações de contato (ex: Objetivo, Email, etc) logo após o nome, sem cabeçalho."
+                            }
+                        },
+                        required: ["score", "improvements", "optimizedResume"]
+                    }
+                }
+            };
+
+            const apiKey = "AIzaSyCELOBMQR_Lqc_33y5smeHLYIvj-3oRgIs"; // API key managed by Canvas environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro na API: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
+                    const jsonResponse = result.candidates[0].content.parts[0].text;
+                    const parsedData = JSON.parse(jsonResponse);
+                    
+                    renderResults(parsedData);
+                } else {
+                    throw new Error("Formato de resposta inesperado da IA.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                showError("Ocorreu um erro ao processar a análise. Tente novamente.");
+                setViewState('initial');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }
+
+        function renderResults(data) {
+            // Preenche Score
+            const score = data.score || 0;
+            const color = getScoreColor(score);
+            
+            scoreText.textContent = `${score}%`;
+            scoreCircle.setAttribute('stroke', color);
+            scoreCircle.setAttribute('stroke-dasharray', `${score}, 100`);
+            scoreMessage.textContent = getScoreMessage(score);
+
+            // Preenche Melhorias
+            improvementsList.innerHTML = '';
+            if (data.improvements && Array.isArray(data.improvements)) {
+                data.improvements.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = "flex items-start gap-3 text-sm text-gray-700 bg-orange-50 p-3 rounded-lg border border-orange-100";
+                    li.innerHTML = `<i class="fas fa-exclamation-triangle text-orange-400 mt-0.5"></i> <span>${item}</span>`;
+                    improvementsList.appendChild(li);
+                });
+            }
+
+            // Preenche Currículo Otimizado
+            optimizedResumeText.textContent = data.optimizedResume || "Não foi possível gerar o currículo otimizado.";
+
+            // Muda a view
+            setViewState('results');
+        }
+
+        // Lógica de Copiar para a área de transferência
+        copyBtn.addEventListener('click', () => {
+            const textToCopy = optimizedResumeText.textContent;
+            
+            // Fallback para document.execCommand como instruído para iFrames
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            
+            // Evitar scroll para a bottom da página
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copyToast.classList.remove('hidden');
+                    setTimeout(() => copyToast.classList.add('hidden'), 2000);
+                }
+            } catch (err) {
+                console.error('Fallback: Oops, não foi possível copiar', err);
+            }
+            
+            document.body.removeChild(textArea);
+        });
+
+        // Lógica para Baixar o arquivo Word
+        downloadBtn.addEventListener('click', () => {
+            const textToDownload = optimizedResumeText.textContent;
+            if (!textToDownload) return;
+
+             // Converter Markdown para HTML
+            const htmlContent = marked.parse(textToDownload);
+
+            // Criando estrutura HTML básica para ser interpretada como Word
+            const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Currículo Otimizado</title>
+                    <style>
+                        body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #000; }
+                        h1 { color: #0a192f; font-size: 18pt; margin-top: 10px; margin-bottom: 10px; }
+                        h2 { color: #0a192f; font-size: 14pt; border-bottom: 1px solid #38bdf8; padding-bottom: 2px; margin-top: 15px; margin-bottom: 10px; text-transform: uppercase; }
+                        h3 { color: #333; font-size: 12pt; margin-top: 10px; margin-bottom: 5px; }
+                        p { margin: 5px 0; }
+                    </style>
+                </head>
+                <body>`;
+            const postHtml = "</body></html>";
+            
+            const documentHtml = preHtml + htmlContent + postHtml;
+            
+            // Cria um Blob com o conteúdo e o tipo MIME do MS Word
+            const blob = new Blob(['\ufeff', documentHtml], {
+                type: 'application/msword'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.createElement("a");
+            
+            downloadLink.href = url;
+            downloadLink.download = "Curriculo_Otimizado_ATS.doc";
+            
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        });
+
+        // Lógica para Baixar o arquivo PDF (Versão Texto para ATS)
+        downloadPdfBtn.addEventListener('click', () => {
+            const textToDownload = optimizedResumeText.textContent;
+            if (!textToDownload) return;
+
+            // Converter Markdown para HTML separando o cabeçalho
+            const parts = textToDownload.split(/(?=## )/);
+            const headerMarkdown = parts.shift() || ""; 
+            const bodyMarkdown = parts.join('');
+
+            const headerHtml = marked.parse(headerMarkdown);
+            const bodyHtml = marked.parse(bodyMarkdown);
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Curriculo_Otimizado</title>
+                    <style>
+                        @media print {
+                            @page { margin: 0; }
+                            body { 
+                                -webkit-print-color-adjust: exact; 
+                                print-color-adjust: exact; 
+                                margin: 0;
+                            }
+                        }
+                        body {
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .pdf-header {
+                            background-color: #0a192f !important;
+                            color: #e2e8f0 !important;
+                            padding: 40px;
+                        }
+                        .pdf-header h1 { color: #ffffff !important; font-size: 26pt; margin: 0 0 10px 0; text-transform: uppercase; }
+                        .pdf-header p { margin: 0; font-size: 10pt; line-height: 1.6; }
+                        .pdf-header strong { color: #38bdf8 !important; font-weight: bold; }
+                        
+                        .pdf-content {
+                            padding: 30px 40px;
+                            background-color: #ffffff !important;
+                        }
+                        .pdf-content h2 { color: #0a192f !important; font-size: 12pt; text-transform: uppercase; border-bottom: 2px solid #38bdf8 !important; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; }
+                        .pdf-content h3 { color: #1e293b !important; font-size: 11pt; font-weight: bold; margin-top: 15px; margin-bottom: 5px; }
+                        .pdf-content p { font-size: 10pt; color: #334155 !important; margin-bottom: 10px; line-height: 1.5; }
+                        .pdf-content ul { padding-left: 18px; margin-bottom: 15px; }
+                        .pdf-content li { font-size: 10pt; color: #334155 !important; margin-bottom: 6px; line-height: 1.5; }
+                        .pdf-content strong { color: #0f172a !important; }
+                    </style>
+                </head>
+                <body>
+                    <div class="pdf-header">${headerHtml}</div>
+                    <div class="pdf-content">${bodyHtml}</div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                                window.close();
+                            }, 250);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        });
+
+        // Event Listener do botão
+        analyzeBtn.addEventListener('click', analyzeResume);
+
+    
+        // Tema Dark/Light
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        
+        // Check local storage or system preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.body.classList.add('dark');
+            document.documentElement.classList.add('dark');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+            document.body.classList.remove('dark');
+            document.documentElement.classList.remove('dark');
+            themeIcon.classList.replace('fa-sun', 'fa-moon');
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.body.classList.toggle('dark');
+            
+            if (isDark) {
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+                localStorage.theme = 'dark';
+            } else {
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+                localStorage.theme = 'light';
+            }
+        });
+
+        // Registrar Service Worker para o PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(registration => {
+                    console.log('ServiceWorker registrado com sucesso: ', registration.scope);
+                }).catch(err => {
+                    console.log('Falha no registro do ServiceWorker: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
