@@ -555,7 +555,11 @@
                 reader.onload = async function(e) {
                     try {
                         const typedarray = new Uint8Array(e.target.result);
-                        const pdf = await pdfjsLib.getDocument({data: typedarray}).promise;
+                        const pdf = await pdfjsLib.getDocument({
+                            data: typedarray,
+                            cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                            cMapPacked: true
+                        }).promise;
                         let text = '';
                         
                         for (let i = 1; i <= pdf.numPages; i++) {
