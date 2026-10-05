@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ats-optimizer-v1';
+const CACHE_NAME = 'ats-optimizer-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,32 +13,49 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
+  // Força o novo service worker a se ativar imediatamente
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Opened cache v2');
         return cache.addAll(ASSETS_TO_CACHE);
       })
   );
 });
 
 self.addEventListener('fetch', event => {
+  // 1. Ignorar requisições que não sejam GET (como os POSTs do Firebase)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // 2. Ignorar APIs do Firebase / Google (evita pendurar conexões WebSockets e Long-polling)
+  const url = new URL(event.request.url);
+  if (url.hostname.includes('firestore.googleapis.com') || url.hostname.includes('firebase')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version if found
-        if (response) {
-          return response;
-        }
-        
-        // Otherwise fetch from network
-        return fetch(event.request).catch(() => {
-          // Fallback if offline and not in cache
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-        });
-      })
+    // Estratégia: Network First (Tenta a rede, se falhar ou estiver offline, usa o cache)
+    fetch(event.request).then(response => {
+      // Só faz cache se a resposta for bem sucedida
+      if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
+        return response;
+      }
+      
+      const responseToCache = response.clone();
+      caches.open(CACHE_NAME).then(cache => {
+        cache.put(event.request, responseToCache);
+      });
+      
+      return response;
+    }).catch(() => {
+      return caches.match(event.request).then(response => {
+        if (response) return response;
+        if (event.request.mode === 'navigate') return caches.match('./index.html');
+      });
+    })
   );
 });
 
@@ -53,6 +70,9 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+      // Faz com que a nova versão assuma o controle de todas as páginas abertas imediatamente
+      return self.clients.claim();
     })
   );
 });
