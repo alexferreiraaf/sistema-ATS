@@ -480,6 +480,10 @@
                     <!-- Filtros -->
                     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-end">
                         <div class="flex-1 w-full">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filtrar por Empresa / Vaga</label>
+                            <input type="text" id="filterCompany" placeholder="Digite a empresa ou vaga..." class="w-full px-3 py-1 rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary outline-none">
+                        </div>
+                        <div class="flex-1 w-full">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filtrar por Data</label>
                             <input type="date" id="filterDate" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
                         </div>
@@ -1346,17 +1350,20 @@
         const jobForm = document.getElementById('jobForm');
         const jobsListContainer = document.getElementById('jobsListContainer');
         const emptyJobsState = document.getElementById('emptyJobsState');
+        const filterCompany = document.getElementById('filterCompany');
         const filterDate = document.getElementById('filterDate');
         const filterStatus = document.getElementById('filterStatus');
         const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
-        if (filterDate) filterDate.addEventListener('change', loadJobs);
-        if (filterStatus) filterStatus.addEventListener('change', loadJobs);
+        if (filterCompany) filterCompany.addEventListener('input', () => loadJobs(false));
+        if (filterDate) filterDate.addEventListener('change', () => loadJobs(false));
+        if (filterStatus) filterStatus.addEventListener('change', () => loadJobs(false));
         if (clearFiltersBtn) {
             clearFiltersBtn.addEventListener('click', () => {
+                if (filterCompany) filterCompany.value = '';
                 filterDate.value = '';
                 filterStatus.value = '';
-                loadJobs();
+                loadJobs(false);
             });
         }
 
@@ -1597,7 +1604,7 @@
             document.getElementById('viewDescModal').classList.remove('hidden');
         };
 
-        async function loadJobs() {
+        async function loadJobs(fetchFromDb = true) {
             const emptyJobsState = document.getElementById('emptyJobsState');
             const kpiTotal = document.getElementById('kpiTotal');
             const kpiInterviews = document.getElementById('kpiInterviews');
@@ -1614,14 +1621,19 @@
                     return;
                 }
 
-                // Buscar vagas do usuário logado
-                const q = query(collection(db, 'jobs'), where("userId", "==", window.currentUser.uid));
-                const querySnapshot = await getDocs(q);
+                if (fetchFromDb || !window.allUserJobs) {
+                    // Buscar vagas do usuário logado
+                    const q = query(collection(db, 'jobs'), where("userId", "==", window.currentUser.uid));
+                    const querySnapshot = await getDocs(q);
+                    
+                    let fetchedJobs = [];
+                    querySnapshot.forEach((docSnap) => {
+                        fetchedJobs.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    window.allUserJobs = fetchedJobs;
+                }
                 
-                let jobs = [];
-                querySnapshot.forEach((docSnap) => {
-                    jobs.push({ id: docSnap.id, ...docSnap.data() });
-                });
+                let jobs = [...window.allUserJobs];
                 
                 // Atualizar KPIs (Sempre mostram os dados totais)
                 if (kpiTotal) kpiTotal.textContent = jobs.length;
@@ -1629,9 +1641,16 @@
                 if (kpiRejected) kpiRejected.textContent = jobs.filter(j => j.status === "Rejeitado").length;
 
                 // Aplicar Filtros
+                const companyVal = filterCompany ? filterCompany.value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : '';
                 const dateVal = filterDate ? filterDate.value : '';
                 const statusVal = filterStatus ? filterStatus.value : '';
                 
+                if (companyVal) {
+                    jobs = jobs.filter(j => {
+                        const target = (j.company || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        return target.includes(companyVal);
+                    });
+                }
                 if (dateVal) {
                     jobs = jobs.filter(j => j.date === dateVal);
                 }
