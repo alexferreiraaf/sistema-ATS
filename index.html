@@ -331,6 +331,13 @@
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Cole a descrição da vaga que você deseja se candidatar.</p>
                 <textarea id="jobInput" class="w-full h-48 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all dark:text-white" placeholder="Ex: Procuramos Desenvolvedor Front-end Pleno.&#10;Requisitos: React, Tailwind, Git..."></textarea>
+                <div id="duplicateJobWarning" class="hidden mt-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 p-4 rounded-xl text-sm flex items-start gap-3 transition-all">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-lg mt-0.5 flex-shrink-0"></i>
+                    <div class="flex-1">
+                        <p class="font-semibold">Atenção: Esta vaga já foi cadastrada!</p>
+                        <p id="duplicateJobWarningText" class="mt-1 text-xs sm:text-sm"></p>
+                    </div>
+                </div>
             </div>
 
             <button id="analyzeBtn" class="w-full bg-primary hover:bg-indigo-700 text-white font-semibold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3 text-lg">
@@ -893,6 +900,63 @@
         }
 
 
+        // Verificação de vaga duplicada pela descrição
+        const duplicateJobWarning = document.getElementById('duplicateJobWarning');
+        const duplicateJobWarningText = document.getElementById('duplicateJobWarningText');
+
+        function normalizeJobText(text) {
+            return (text || '')
+                .trim()
+                .replace(/\s+/g, ' ')
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase();
+        }
+
+        function formatJobDate(dateStr) {
+            if (!dateStr || !dateStr.includes('-')) return dateStr || '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        function findDuplicateJob(descriptionText) {
+            const normalizedInput = normalizeJobText(descriptionText);
+            if (!normalizedInput || normalizedInput.length < 15) return null;
+            if (!window.allUserJobs || !Array.isArray(window.allUserJobs)) return null;
+
+            return window.allUserJobs.find(job => {
+                const normalizedSaved = normalizeJobText(job.jobDescription);
+                if (!normalizedSaved) return false;
+                if (normalizedSaved === normalizedInput) return true;
+                // Verifica também se uma descrição contém a outra quase integralmente (ex: pequenas diferenças ao copiar)
+                if (normalizedSaved.length >= 100 && normalizedInput.length >= 100) {
+                    const minLen = Math.min(normalizedSaved.length, normalizedInput.length);
+                    const maxLen = Math.max(normalizedSaved.length, normalizedInput.length);
+                    if (minLen / maxLen >= 0.85 && (normalizedSaved.includes(normalizedInput) || normalizedInput.includes(normalizedSaved))) {
+                        return true;
+                    }
+                }
+                return false;
+            }) || null;
+        }
+
+        function checkDuplicateJobDescription() {
+            const duplicateJob = findDuplicateJob(jobInput.value);
+            if (duplicateJob) {
+                const dateFormatted = formatJobDate(duplicateJob.date);
+                const statusInfo = duplicateJob.status ? ` • Status: ${duplicateJob.status}` : '';
+                duplicateJobWarningText.textContent = `Você já cadastrou uma vaga com esta descrição em "Minhas Vagas": "${duplicateJob.company}" (enviada em ${dateFormatted}${statusInfo}).`;
+                duplicateJobWarning.classList.remove('hidden');
+                jobInput.classList.add('border-amber-500', 'dark:border-amber-500');
+            } else {
+                duplicateJobWarning.classList.add('hidden');
+                jobInput.classList.remove('border-amber-500', 'dark:border-amber-500');
+            }
+            return duplicateJob;
+        }
+
+        jobInput.addEventListener('input', checkDuplicateJobDescription);
+
         // Função principal que aciona a API do Gemini
         async function analyzeResume() {
             // Define o texto baseando-se no modo atual
@@ -913,6 +977,13 @@
             if (!jobText) {
                 showError("Por favor, preencha a descrição da vaga.");
                 return;
+            }
+
+            const duplicateJob = checkDuplicateJobDescription();
+            if (duplicateJob) {
+                const dateFormatted = formatJobDate(duplicateJob.date);
+                const proceed = confirm(`⚠️ Atenção: Esta vaga já consta em "Minhas Vagas" como "${duplicateJob.company}" (enviada em ${dateFormatted}).\n\nDeseja analisar e otimizar mesmo assim?`);
+                if (!proceed) return;
             }
 
             setViewState('loading');
@@ -1649,6 +1720,7 @@
                         fetchedJobs.push({ id: docSnap.id, ...docSnap.data() });
                     });
                     window.allUserJobs = fetchedJobs;
+                    checkDuplicateJobDescription();
                 }
                 
                 let jobs = [...window.allUserJobs];
